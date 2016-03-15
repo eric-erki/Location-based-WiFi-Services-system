@@ -1,5 +1,5 @@
 # The Location-based WiFi Services system: A Complete Open Source Solution for Wi-Fi Beacon Stuffing Based Location-based Services
-
+![LoWS Use Case Examples](/web/service_announcement.jpg)
 ## 0. What is LoWS?
 Omnipresent Wi-Fi access points (APs) periodically
 broadcast beacon frames to inform potential stations (STAs)
@@ -21,9 +21,9 @@ system is modular with well-defined interfaces making it to an
 attractive tool for modifications, changes and improvements.
 
 ![LoWS System Architecture](/web/complete_design.jpg)
-Format: ![Alt Text](url)
 
-## 1. File Description
+
+## 1. Repository Description
 ### 1.1 LoWS-Receiver-Application
 
 * Here the Android source code is stored, the complete
