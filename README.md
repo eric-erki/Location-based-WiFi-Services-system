@@ -24,7 +24,7 @@ attractive tool for modifications, changes and improvements.
 
 
 ## 1. Repository Description
-### 1.1 LoWS-Receiver-Application
+### 1.1 LoWS-Receiver-Application (Sources in Subfolder LoWS-Receiver-Application)
 
 ![LoWS Receiver Application](/web/lows-listview.png)
 
@@ -43,7 +43,7 @@ attractive tool for modifications, changes and improvements.
  ject for the lowsbroadcast receiver example which 
  shows how to receive LoWS messages within an external application.
 
-### 1.2 LoWS Control / LoWS-Control-DB
+### 1.2 LoWS Control / LoWS-Control-DB (Sources in Subfolder *lows-control* and *lows-control-db*)
 
 ![LoWS Receiver Application](/web/lows-control-ui.jpg)
 
@@ -56,14 +56,14 @@ attractive tool for modifications, changes and improvements.
  machine but not necessary, for our experiments we used
  the address space 192.168.68.0/24 while the LoWS-Control
  used 192.168.68.1
-### 1.3 Local Codebookserver
+### 1.3 Local Codebookserver (Sources in Subfolder *codebookserver*)
 * This is the local codebookserver implementation,
  also realized using PHP. For our experiments we
  ran the codebookserver on the same server as the 
  LoWS-Control, therefore the access from the codebookserver to the LoWS-Control-db worked locally, if the local codebook server should run separately,
  the connection to the LoWS-Control-db has to be
  adjusted.
-#### 1.3 Global Codebook Address Server
+#### 1.3 Global Codebook Address Server (Sources in Subfolder *gcbas*)
 * This folder contains the Global Codebook Address Server
  also implemented using PHP, we ran this code on
  a separate machine using apache with PHP and a MySQL
@@ -71,7 +71,7 @@ attractive tool for modifications, changes and improvements.
  the file "gcbas-database.sql" from the MySQL server.
  The access to the database requires login credentials
  these have to be modified within the "address-handler.php" file. 
-### 1.4 OpenWRT Files
+### 1.4 OpenWRT Files (Sources in Subfolder *OpenWRT*)
 * This folder includes all source code which was used
  on the OpenWRT access points. The subfolder "hostapd-add-ie/openwrt" contains the patch for enabling the 
  additonal setting of IEEE 802.11 IEs within hostpad via 
@@ -90,27 +90,6 @@ attractive tool for modifications, changes and improvements.
  hostapd_cli to send WTN LoWS messages including the
  current waiting ticket numbers from the TU examination
  office.
-### 1.5 Prototype Virtual Machines
-* Within this folder, all the virtual machine images are
- used within our prototypical setup are stored. All of 
- them use a bridged Network Interface. During our experiments this physical bridged network interface used the fixed IP 192.168.68.111 and was connected via a switch 
- with the OpenWRT AP and the Cisco lightweight AP.
-* Therefore two machines can be found there. All of them
- can be accessed via the Webmin Webinterface by just 
- typing the URL of the machine inside a browser. More-
- over, all of them have the standard root accout with
- the credentials: 
-	* user: root
-	* pass: toor
-* The LoWS-Control VM includes the LoWS-Control Program,
- the LoWS-Control-DB and the local Codebookserver. 
- Besides, a MySQL Server, an Apache with PHP and a
- DHCP Server are running. IP: 192.168.68.1 fixed
-* The global Codebook Address Server VM includes the global Codebook address server and the global Codebook Server Database. IP: 192.168.68.3 (DHCP)
-*The AIR-CTVM-K9-8-0-100-0p VM houses the WLC of the
- Cisco lightweight AP. Due to its closed source the vWLC is not provided, if you want to use 
- Cisco lightweight APs within the LoWS system, please use your WLC or vWLC you purchased together with your lightweight AP from Cisco. For experiments, please contact Cisco to get a 
-evaluation Version of their currently available vWLC. 
 
 ## 9. Contact
 * Sven Zehl, TU-Berlin, zehl@tkn
