@@ -20,13 +20,13 @@ installed on commercial off-the-shelf Android devices. The LoWS
 system is modular with well-defined interfaces making it to an
 attractive tool for modifications, changes and improvements.
 
-![LoWS System Architecture](/web/complete_design.jpg)
+![LoWS System Architecture](/web/complete_design.jpg=250x)
 
 
 ## 1. Repository Description
 ### 1.1 LoWS-Receiver-Application
 
-![LoWS Receiver Application](/web/lows-listview.png)
+![LoWS Receiver Application](/web/lows-listview.png=250x)
 
 * Here the Android source code is stored, the complete
  Eclipse projects can be found in the subfolder
@@ -45,7 +45,7 @@ attractive tool for modifications, changes and improvements.
 
 ### 1.2 LoWS Control / LoWS-Control-DB
 
-![LoWS Receiver Application](/web/lows-control-ui.jpg)
+![LoWS Receiver Application](/web/lows-control-ui.jpg=250x)
 
 * This is the LoWS Control Program prototype, realized
  using PHP and MySQL, the corresponding MySQL database
