@@ -1,5 +1,5 @@
 # The Location-based WiFi Services system: A Complete Open Source Solution for Wi-Fi Beacon Stuffing Based Location-based Services
-![LoWS Use Case Examples](/web/service_announcement.jpg)
+![LoWS Use Case Examples](/web/beps_sprechblasen_cut.jpg)
 ## 0. What is LoWS?
 Omnipresent Wi-Fi access points (APs) periodically
 broadcast beacon frames to inform potential stations (STAs)
@@ -26,6 +26,8 @@ attractive tool for modifications, changes and improvements.
 ## 1. Repository Description
 ### 1.1 LoWS-Receiver-Application
 
+![LoWS Receiver Application](/web/lows-listview.png)
+
 * Here the Android source code is stored, the complete
  Eclipse projects can be found in the subfolder
  "Source", the javadoc for the Android source can be 
@@ -42,6 +44,8 @@ attractive tool for modifications, changes and improvements.
  shows how to receive LoWS messages within an external application.
 
 ### 1.2 LoWS Control / LoWS-Control-DB
+
+![LoWS Receiver Application](/web/lows-control-ui.jpg)
 
 * This is the LoWS Control Program prototype, realized
  using PHP and MySQL, the corresponding MySQL database
