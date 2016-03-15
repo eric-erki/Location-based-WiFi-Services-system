@@ -20,6 +20,9 @@ installed on commercial off-the-shelf Android devices. The LoWS
 system is modular with well-defined interfaces making it to an
 attractive tool for modifications, changes and improvements.
 
+![LoWS System Architecture](/web/complete_design.jpg)
+Format: ![Alt Text](url)
+
 ## 1. File Description
 ### 1.1 LoWS-Receiver-Application
 
