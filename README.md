@@ -27,6 +27,8 @@ attractive tool for modifications, changes and improvements.
 ### 1.1 LoWS-Receiver-Application (Sources in Subfolder *LoWS-Receiver-Application*)
 
 ![LoWS Receiver Application](/web/lows-listview.png)
+![LoWS Receiver Application](/web/lows-beps-alarm-detail.png)
+![LoWS Receiver Application](/web/lows-beps-detail.png)
 
 * Here the Android source code is stored, the complete
  Eclipse projects can be found in the subfolder
