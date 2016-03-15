@@ -24,7 +24,7 @@ attractive tool for modifications, changes and improvements.
 
 
 ## 1. Repository Description
-### 1.1 LoWS-Receiver-Application (Sources in Subfolder LoWS-Receiver-Application)
+### 1.1 LoWS-Receiver-Application (Sources in Subfolder *LoWS-Receiver-Application*)
 
 ![LoWS Receiver Application](/web/lows-listview.png)
 
