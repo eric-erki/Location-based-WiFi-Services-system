@@ -1,0 +1,35 @@
+package com.lows;
+
+import android.app.Service;
+import android.content.Intent;
+import android.os.IBinder;
+import android.widget.Toast;
+
+public class LowsBackgroundAlarmScanner extends Service {
+
+	private String[] searchNCompareData;
+	private int searchNCompareDataLength;
+	private String[] alarmMessagesData;
+	private int alarmMessagesDataLength;
+
+		  @Override
+		  public int onStartCommand(Intent intent, int flags, int startId) {
+		    //TODO do something useful
+			  searchNCompareData=intent.getStringArrayExtra("searchNCompareData");
+			  alarmMessagesData=intent.getStringArrayExtra("alarmMessagesData");
+			  searchNCompareDataLength = searchNCompareData.length;
+			  alarmMessagesDataLength = alarmMessagesData.length;
+			  if(searchNCompareDataLength!=alarmMessagesDataLength)
+			  {
+				  Toast.makeText(getApplicationContext(), "LowsBackgroundAlarmScanner: searchNCompareDataLength!=alarmMessagesDataLength", Toast.LENGTH_SHORT).show();
+			  }
+		    return Service.START_NOT_STICKY;
+		  }
+
+		  @Override
+		  public IBinder onBind(Intent intent) {
+		  //TODO for communication return IBinder implementation
+		    return null;
+		  }
+		
+}

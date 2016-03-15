@@ -1,0 +1,148 @@
+Index: compat-wireless-2014-05-22/include/net/mac80211.h
+===================================================================
+--- compat-wireless-2014-05-22.orig/include/net/mac80211.h	2015-02-14 13:50:21.419608930 +0100
++++ compat-wireless-2014-05-22/include/net/mac80211.h	2015-02-14 13:52:58.269144910 +0100
+@@ -517,6 +517,11 @@
+  */
+ enum mac80211_tx_control_flags {
+ 	IEEE80211_TX_CTRL_PORT_CTRL_PROTO	= BIT(0),
++	/*NEW*/
++	/*sz*/
++	IEEE80211_TX_CTL_RC_BYPASS		= BIT(22),
++	/*END OF NEW*/
++	/*sz*/
+ };
+ 
+ /*
+Index: compat-wireless-2014-05-22/net/mac80211/rate.c
+===================================================================
+--- compat-wireless-2014-05-22.orig/net/mac80211/rate.c	2014-05-23 19:32:18.000000000 +0200
++++ compat-wireless-2014-05-22/net/mac80211/rate.c	2015-02-14 13:53:16.428060908 +0100
+@@ -672,6 +672,17 @@
+ 		ista = &sta->sta;
+ 		priv_sta = sta->rate_ctrl_priv;
+ 	}
++	
++	/*NEW*/
++	/*sz*/
++	if (info->flags & IEEE80211_TX_CTL_RC_BYPASS)
++	{
++		printk(KERN_WARNING "IEEE80211_TX_CTL_RC_BYPASS found radio tap header, returning from function\n");
++		return;
++	}
++	    
++	/*NEW*/
++	/*sz*/
+ 
+ 	for (i = 0; i < IEEE80211_TX_MAX_RATES; i++) {
+ 		info->control.rates[i].idx = -1;
+Index: compat-wireless-2014-05-22/net/mac80211/tx.c
+===================================================================
+--- compat-wireless-2014-05-22.orig/net/mac80211/tx.c	2015-02-14 13:50:20.971832929 +0100
++++ compat-wireless-2014-05-22/net/mac80211/tx.c	2015-02-14 13:53:15.612468908 +0100
+@@ -1353,9 +1353,16 @@
+ 	CALL_TXH(ieee80211_tx_h_ps_buf);
+ 	CALL_TXH(ieee80211_tx_h_check_control_port_protocol);
+ 	CALL_TXH(ieee80211_tx_h_select_key);
+-	if (!(tx->local->hw.flags & IEEE80211_HW_HAS_RATE_CONTROL))
++	/*NEW*/
++	/*SZ*/
++	
++	//if (!(tx->local->hw.flags & IEEE80211_HW_HAS_RATE_CONTROL))
++	if (!(tx->local->hw.flags & IEEE80211_HW_HAS_RATE_CONTROL) &&
++	    !(info->flags & IEEE80211_TX_CTL_RC_BYPASS)){
++	/*END NEW*/
++	/*sz*/
+ 		CALL_TXH(ieee80211_tx_h_rate_ctrl);
+-
++	}
+ 	if (unlikely(info->flags & IEEE80211_TX_INTFL_RETRANSMISSION)) {
+ 		__skb_queue_tail(&tx->skbs, tx->skb);
+ 		tx->skb = NULL;
+@@ -1532,7 +1539,13 @@
+ 	ieee80211_tx(sdata, skb, false, band);
+ }
+ 
+-static bool ieee80211_parse_tx_radiotap(struct sk_buff *skb)
++/*NEW*/
++/*sz*/
++//static bool ieee80211_parse_tx_radiotap(struct sk_buff *skb)
++static bool ieee80211_parse_tx_radiotap(struct sk_buff *skb,
++					struct ieee80211_local *local)
++/*END OF NEW*/
++/*sz*/
+ {
+ 	struct ieee80211_radiotap_iterator iterator;
+ 	struct ieee80211_radiotap_header *rthdr =
+@@ -1540,6 +1553,13 @@
+ 	struct ieee80211_tx_info *info = IEEE80211_SKB_CB(skb);
+ 	int ret = ieee80211_radiotap_iterator_init(&iterator, rthdr, skb->len,
+ 						   NULL);
++	/*NEW*/
++	/*sz*/			
++	struct ieee80211_channel *chan = local->hw.conf.chandef.chan;	   
++	struct ieee80211_supported_band *sband =
++			local->hw.wiphy->bands[chan->band];
++	/*END OF NEW*/
++	/*sz*/
+ 	u16 txflags;
+ 
+ 	info->flags |= IEEE80211_TX_INTFL_DONT_ENCRYPT |
+@@ -1590,7 +1610,48 @@
+ 			if (txflags & IEEE80211_RADIOTAP_F_TX_NOACK)
+ 				info->flags |= IEEE80211_TX_CTL_NO_ACK;
+ 			break;
++			
++		/*NEW*/
++		/*sz*/
++		case IEEE80211_RADIOTAP_RATE: {
++			//printk(KERN_WARNING "IEEE80211_RADIOTAP_RATE found radio tap header\n");
++			int i, idx = -1;
++			int rate = *iterator.this_arg * 5;
++			//printk(KERN_WARNING "IEEE80211_RADIOTAP_RATE = %d\n",rate);
++			for (i = 0; i < sband->n_bitrates; i++)
++				if (sband->bitrates[i].bitrate == rate) {
++					idx = i;
++					break;
++				}
++
++			/* Rate not available - rejecting */
++			if (idx < 0)
++			{
++				//printk(KERN_WARNING "IEEE80211_RADIOTAP_RATE not available, rejecting!\n");
++				return false;
++			}
++			info->flags |= IEEE80211_TX_CTL_RC_BYPASS;
++			info->control.rates[0].idx = idx;
++			info->control.rates[0].count = 1;
++			for (i = 1; i < IEEE80211_TX_MAX_RATES; i++)
++				info->control.rates[i].idx = -1;
++			break;
++		}
+ 
++		case IEEE80211_RADIOTAP_DATA_RETRIES:
++			/*
++			 * Only allow setting the number of retries in
++			 * conjunction with the rates, when the rate control
++			 * is bypassed.
++			 */
++			if (info->flags & IEEE80211_TX_CTL_RC_BYPASS)
++				info->control.rates[0].count =
++					*iterator.this_arg;
++			break;
++		/*END OF NEW*/
++		/*sz*/
++		
++		
+ 		/*
+ 		 * Please update the file
+ 		 * Documentation/networking/mac80211-injection.txt
+@@ -1686,7 +1747,7 @@
+ 		      IEEE80211_TX_CTL_INJECTED;
+ 
+ 	/* process and remove the injection radiotap header */
+-	if (!ieee80211_parse_tx_radiotap(skb))
++	if (!ieee80211_parse_tx_radiotap(skb, local))
+ 		goto fail;
+ 
+ 	rcu_read_lock();

@@ -1,0 +1,24 @@
+package com.lows;
+
+
+/**
+ * This is the interface class for all extended (flexible) LoWS types.
+ * All new flexible (extended) LoWS types must implement this interface.
+ * See the STLoWSExtendedType class as an example how this is done.
+ * 
+ * @author Sven Zehl
+ *
+ */
+public interface LoWSExtendedType {
+	int getTypeNumber();
+	String getDisplayString();
+	String decodeData(String dataInHex);
+	String getIconName();
+	boolean showAlarmSwitch();
+	boolean showSearchFieldSwitch();
+	String getSearchFieldDescription();
+	boolean getAlarmStartState(); //true = alarm enabled when recognized, false = not enabled initially
+	String getAlarmClickStandardText(String serviceData);
+	String getEnhancedClickText(String serviceData);
+	void setEnhancedClickText(String serviceData, String enhancedClickText);
+}

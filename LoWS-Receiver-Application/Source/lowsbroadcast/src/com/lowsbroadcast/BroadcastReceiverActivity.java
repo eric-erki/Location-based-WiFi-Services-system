@@ -1,0 +1,83 @@
+package com.lowsbroadcast;
+
+
+
+
+
+import android.support.v7.app.ActionBarActivity;
+import android.net.wifi.WifiManager;
+import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.widget.TextView;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.os.Bundle;
+import android.telephony.TelephonyManager;
+import android.util.Log;
+
+/**
+ * This is the main activity of the LoWS Broadcast Receiver 
+ * Example Application.
+ * This Activity simply registers a Broadcast Receiver to
+ * the intent filter "com.lows.newlows" and prints all the
+ * received LoWS message payload.
+ * 
+ * @author Sven Zehl
+ *
+ */
+public class BroadcastReceiverActivity extends ActionBarActivity {
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_broadcast_receiver);
+		LowsBroadcastReceiver lowsBroadcastReceiver = new LowsBroadcastReceiver();
+		registerReceiver(lowsBroadcastReceiver, new IntentFilter(
+				"com.lows.newlows"));
+		
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		// Inflate the menu; this adds items to the action bar if it is present.
+		getMenuInflater().inflate(R.menu.broadcast_receiver, menu);
+		return true;
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		// Handle action bar item clicks here. The action bar will
+		// automatically handle clicks on the Home/Up button, so long
+		// as you specify a parent activity in AndroidManifest.xml.
+		int id = item.getItemId();
+		if (id == R.id.action_settings) {
+			return true;
+		}
+		
+		return super.onOptionsItemSelected(item);
+	}
+	
+	
+
+	class LowsBroadcastReceiver extends BroadcastReceiver {
+
+	  @Override
+	  public void onReceive(Context context, Intent intent) {
+	    Bundle extras = intent.getExtras();
+	    final TextView typeTextView = (TextView) findViewById(R.id.text);
+	    if (extras != null) {
+	      String lows_hex = extras.getString("lows");
+	      Log.w("LOWS-BROADCAST_RECEIVER", "LOWS data: "+lows_hex);
+	      String oldText = typeTextView.getText().toString()+"\n";
+	      typeTextView.setText(oldText+"LOWS data: "+lows_hex);
+	      
+	    }
+	  }
+	} 
+
+	
+	
+}

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+   <PreferenceCategory
+            android:title="LoW-S Preferences">
+    <CheckBoxPreference
+            android:key="background_scanner"
+            android:summary="Enable or disable background scanner service when LoW-S app is closed. Warning! If you disable background scanner you will not be able to receive notifications when LoW-S Application is closed!"
+            android:title="LoW-S Background Scan"
+            android:defaultValue="true"
+        />
+  <CheckBoxPreference
+            android:key="clear_db"
+            android:summary="Clear codebook database on exit"
+            android:title="Clear Codebook Database"
+            android:defaultValue="false"
+        />
+    </PreferenceCategory>
+
+</PreferenceScreen>

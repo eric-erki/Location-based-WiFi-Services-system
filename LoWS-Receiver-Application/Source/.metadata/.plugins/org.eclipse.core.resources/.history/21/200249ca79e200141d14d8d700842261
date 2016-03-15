@@ -1,0 +1,42 @@
+package com.lows;
+
+/**
+ * This is the interface class for all reduced LoWS types.
+ * All new reduced LoWS types must implement this interface.
+ * See the BEPSLoWSReducedType class as an example how this is done.
+ * 
+ * @author Sven Zehl
+ *
+ */
+public interface LoWSReducedType {
+	/**
+	 * This function should return the LoWS type number that identifies this specific LoWS type
+	 * @return
+	 */
+	int getTypeNumber();
+	/**
+	 * This function should return the String that is displayed within the Scan Result ListView
+	 * if this specific service with the specific type number was found.
+	 * @return
+	 */
+	String getDisplayString();
+	/**
+	 * This function takes the payload of the LoWS message and decodes it.
+	 * It returns the decoded LoWS data that can afterwards be displayed to the user.
+	 * Currently for the reduced type this function is used to decode the lic part.
+	 * 
+	 * @param dataInHex, raw LoWS message paylod (lic) in hex as String
+	 * @return, decoded LoWS message payload as String
+	 */
+	String decodeData(String dataInHex);
+	/**
+	 * Get the name of the icon which should be displayed together with the Display String
+	 * @return, the name of the icon as String
+	 */
+	String getIconName();
+	boolean showAlarmSwitch();
+	boolean showSearchFieldSwitch();
+	String getSearchFieldDescription();
+	boolean getAlarmStartState(); //true = alarm enabled when recognized, false = not enabled initially	
+	String getAlarmClickStandardText(String serviceData);
+}

@@ -1,0 +1,13 @@
+package com.lows;
+
+public interface LoWSReducedType {
+	int getTypeNumber();
+	String getDisplayString();
+	String decodeData(String dataInHex);
+	String getIconName();
+	boolean showAlarmSwitch();
+	boolean showSearchFieldSwitch();
+	String getSearchFieldDescription();
+	boolean getAlarmStartState(); //true = alarm enabled when recognized, false = not enabled initially	
+	String getAlarmClickStandardText(String serviceData);
+}

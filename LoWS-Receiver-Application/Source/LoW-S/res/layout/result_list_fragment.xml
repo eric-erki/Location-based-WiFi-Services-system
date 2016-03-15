@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/result_list_fragment"    
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:theme="@android:style/Theme.Holo"
+    android:orientation="vertical" >
+ 
+ 
+ 
+    <TextView
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:padding="5dp"
+        android:text="@string/title_section1"
+        android:textSize="20sp" />
+     
+    <ListView android:id="@+id/lows_list_view" android:layout_width="match_parent"
+  android:layout_height="wrap_content" />
+     
+ 
+</LinearLayout>

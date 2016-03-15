@@ -1,0 +1,692 @@
+package com.lows;
+
+import java.io.IOException;
+import java.util.Calendar;
+import java.util.List;
+import java.util.concurrent.TimeoutException;
+import java.util.ArrayList;
+
+import com.stericson.RootTools.RootTools;
+import com.stericson.RootTools.exceptions.RootDeniedException;
+import com.stericson.RootTools.execution.Command;
+
+import android.app.Activity;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.support.v13.app.FragmentPagerAdapter;
+import android.net.wifi.WifiManager;
+import android.os.Bundle;
+import android.support.v4.view.ViewPager;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.app.AlertDialog;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+
+
+
+public class LowsActivity extends Activity {
+
+	/**
+	 * The {@link android.support.v4.view.PagerAdapter} that will provide
+	 * fragments for each of the sections. We use a {@link FragmentPagerAdapter}
+	 * derivative, which will keep every loaded fragment in memory. If this
+	 * becomes too memory intensive, it may be best to switch to a
+	 * {@link android.support.v13.app.FragmentStatePagerAdapter}.
+	 */
+	SectionsPagerAdapter mSectionsPagerAdapter;
+
+	/**
+	 * The {@link ViewPager} that will host the section contents.
+	 */
+	ViewPager mViewPager;
+	private boolean globalBepsEnabled=true;
+	private List<AccessPoint> aps;
+	private List<LoWS> lows;
+	private List<LoWSReducedType> lowsRedType;
+	private List<LoWSExtendedType> lowsExtType;
+	private String[] searchNCompareData;
+	private String[] alarmMessagesData;
+	private AccessPoint tempAp;
+	WifiManager mainWifiObj;
+	WifiScanReceiver wifiReciever;
+	private int gotRoot;
+	private String debugText;
+	ScheduledExecutorService scheduledExecutorService =
+            Executors.newScheduledThreadPool(1);
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_lows);
+
+		// Create the adapter that will return a fragment for each of the three
+		// primary sections of the activity.
+		mSectionsPagerAdapter = new SectionsPagerAdapter(getFragmentManager());
+
+		// Set up the ViewPager with the sections adapter.
+		mViewPager = (ViewPager) findViewById(R.id.pager);
+		mViewPager.setAdapter(mSectionsPagerAdapter);
+		mainWifiObj = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        wifiReciever = new WifiScanReceiver();
+        registerReceiver(wifiReciever, new IntentFilter(
+                WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+
+        RootTools.debugMode = true; 
+        //Check if we have root access
+        if (RootTools.isAccessGiven()) {
+            // your app has been granted root access
+        	setTitle("Location-based Wifi Services");
+        	gotRoot=1;
+        	debugText = debugText + "\n-Device is rooted";
+        }
+        else
+        {
+        	setTitle("Location-based Wifi Services");
+        	gotRoot=0;
+        	debugText = debugText + "\n-Device is not rooted";
+        }
+        //Install Binary to get the ScanResults from Driver using Netlink NL80211 communication
+        //Source Code of binary can be found in project/jni folder, to build run ndk-build command
+        //Afterwards binary had to be copied into res/raw folder
+        if (RootTools.installBinary(LowsActivity.this, R.raw.nlscanner, "nlscanner") == false) {
+        	debugText = debugText + "\n-Extraction of nlscanner binary failed.";
+			new AlertDialog.Builder(LowsActivity.this)
+					.setTitle("Extract failed")
+					.setMessage("LoW-S was not able to install nlscanner binary!")
+					.setNeutralButton("ok", null).show();
+		}
+        else
+        {
+        	debugText = debugText + "\n-Extraction of nlscanner binary succeded.";
+        }
+        setExecPerm();
+        addAllTypes();
+        
+        ScheduledFuture scheduledFuture =
+            scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+                public void run(){
+                	mainWifiObj.startScan();
+                	//debugText = debugText + "\n-LoW-S Scan started.";
+                }
+            },
+            1, 30, TimeUnit.SECONDS);
+        
+        //start Background Scan and Alarm Service
+        //use this to start and trigger a service
+        //First start it to deliver the array with alarmStrings
+        Intent i= new Intent(getApplicationContext(), LowsBackgroundAlarmScanner.class);
+        // potentially add data to the intent
+        i.putExtra("searchNCompareData", searchNCompareData);
+        i.putExtra("alarmMessagesData", alarmMessagesData);
+        getApplicationContext().startService(i); 
+        
+        //Now set a AlarmManager which starts the service periodically, even when the device is sleeping
+        Calendar cal = Calendar.getInstance();
+
+        Intent intent = new Intent(this, LowsBackgroundAlarmScanner.class);
+        PendingIntent pintent = PendingIntent.getService(this, 0, intent, 0);
+
+        AlarmManager alarm = (AlarmManager)getSystemService(Context.ALARM_SERVICE);
+        // Start every 30 seconds
+        alarm.setRepeating(AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(), 30*1000, pintent); 
+        
+	}
+	
+	@Override
+	protected void onDestroy()
+	{
+		scheduledExecutorService.shutdownNow();
+		super.onDestroy();
+	}
+	
+	protected void onPause() {
+    	//if(false)
+    	//{
+    	//	unregisterReceiver(wifiReciever);
+    	//}
+    	super.onPause();
+     }
+
+     protected void onResume() {
+        registerReceiver(wifiReciever, new IntentFilter(
+        WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+        super.onResume();
+     }
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		// Inflate the menu; this adds items to the action bar if it is present.
+		getMenuInflater().inflate(R.menu.lows, menu);
+		return true;
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		// Handle action bar item clicks here. The action bar will
+		// automatically handle clicks on the Home/Up button, so long
+		// as you specify a parent activity in AndroidManifest.xml.
+		int id = item.getItemId();
+		if (id == R.id.action_settings) {
+			return true;
+		}
+		return super.onOptionsItemSelected(item);
+	}
+	
+
+	public String getDebugText()
+	{
+		return this.debugText;
+	}
+	
+	void setDebugText(String debugText)
+	{
+		this.debugText=debugText;
+	}
+	
+	void appendDebugText(String debugTextAppend)
+	{
+		this.debugText= this.debugText + debugTextAppend;
+	}
+	
+	List<AccessPoint> getApArray()
+	{
+		return this.aps;
+	}
+	
+	List<LoWS> getLowsArray()
+	{
+		return this.lows;
+	}
+	
+	List<LoWSReducedType> getLoWSReducedTypeArray()
+	{
+		return this.lowsRedType;
+	}
+
+	List<LoWSExtendedType> getlowsExtendedTypeArray()
+	{
+		return this.lowsExtType;
+	}
+	
+	//Function for setting the permissions of the binary to be executable for everyone
+	void setExecPerm()
+    {	
+		Command command = new Command(1, "chmod 0777 /data/data/com.lows/files/nlscanner"){
+			@Override
+			public void commandCompleted(int id, int exitCode) {	
+				debugText = debugText + "\n-Setting execution permissions of nlscanner binary to 0777 succeeded.";
+			}
+
+			@Override
+			public void commandOutput(int id, String line) {
+				debugText = debugText + "\n-" + line;
+			}
+
+			@Override
+			public void commandTerminated(int id, String reason) {
+				debugText = debugText + "-Setting of the execution permissions of nlscanner binary, terminated, reason: " + reason;
+			}
+			
+		};
+		
+        try {
+			RootTools.getShell(false).add(command);
+		} catch (IOException e) {
+			new AlertDialog.Builder(LowsActivity.this)
+			.setTitle("IOException failed")
+			.setMessage("IOException")
+			.setNeutralButton("okay", null).show();
+		} catch (TimeoutException e) {
+			new AlertDialog.Builder(LowsActivity.this)
+			.setTitle("TimeoutException failed")
+			.setMessage("TimeoutException")
+			.setNeutralButton("okay", null).show();
+		} catch (RootDeniedException e) {
+			new AlertDialog.Builder(LowsActivity.this)
+			.setTitle("RootDeniedException failed")
+			.setMessage("RootDeniedException")
+			.setNeutralButton("okay", null).show();
+		}
+    
+    }
+	
+	//WifiScanReceiver, the class that handles the reception of new Scan Results
+	
+	class WifiScanReceiver extends BroadcastReceiver {
+	    //@SuppressLint("UseValueOf")
+	    public void onReceive(Context c, Intent intent) 
+	    {	
+	    	//start nlscanner binary to get all the ScanResults from the driver
+	    	startNLscanner();
+	    }
+
+	 }
+	
+	//This function executes the nlscanner binary and parses all the output (ScanResults) into
+	//our AccessPoint ArrayList. It afterwards starts the ieParser() function.
+	void startNLscanner()
+    {
+		//debugText = debugText + "\n-" + "startNLscanner() called.";
+		aps = new ArrayList<AccessPoint>();
+		Command command = new Command(0, "/data/data/com.lows/files/nlscanner"){
+			@Override
+			public void commandCompleted(int id, int exitCode) {
+				//debugText = debugText + "\n-" + "nlscanner binary succesfully executed." 
+				//		+ "\n-New Scan Results available";
+				ieParser();
+			}
+
+			@Override
+			public void commandOutput(int id, String line) {
+				//String modifyText = outputText.getText().toString();
+				String delimiter = new String();
+				int pos;
+				
+				if(line.indexOf("*")==0||line.indexOf("#")==0)
+				{
+					if(!(line.indexOf("#")==0))
+					{
+						aps.add(tempAp);
+					}
+						
+					tempAp = new AccessPoint();
+				}
+				else if(line.indexOf(delimiter = "BSS ")!=-1)
+				{
+					pos = line.indexOf(delimiter);
+				    tempAp.setBssid(line.substring( pos + delimiter.length() ));
+				}
+				else if(line.indexOf(delimiter = "freq: ")!=-1)
+				{
+					pos = line.indexOf(delimiter);
+				    tempAp.setFreq(  Integer.parseInt(line.substring(pos + delimiter.length())) );
+				}
+				else if(line.indexOf(delimiter = "interval: ")!=-1)
+				{
+					pos = line.indexOf(delimiter);
+				    tempAp.setBeaconInterval(  Integer.parseInt(line.substring(pos + delimiter.length())) );	
+				}	
+				else if(line.indexOf(delimiter = "(dBm): ")!=-1)
+				{
+					pos = line.indexOf(delimiter);
+				    tempAp.setSignal(  Double.parseDouble(line.substring(pos + delimiter.length())) );	
+				}
+				else if(line.indexOf(delimiter = "(ms ago): ")!=-1)
+				{
+					pos = line.indexOf(delimiter);
+				    tempAp.setLastSeen(  Integer.parseInt(line.substring(pos + delimiter.length())) );	
+				}
+				else if(line.indexOf(delimiter = "SSID: ")!=-1)
+				{
+					pos = line.indexOf(delimiter);
+				    tempAp.setSsid(line.substring( pos + delimiter.length() ));
+				}
+				else if(line.indexOf(delimiter = "IE data (hex): ")!=-1)
+				{
+					pos = line.indexOf(delimiter);
+				    tempAp.addIE(line.substring( pos + delimiter.length() ));		    
+				}	
+			}
+
+			@Override
+			public void commandTerminated(int id, String reason) {
+				debugText = debugText + "\n-" + "nlscanner terminated, *Scanning Error*" + reason + "*";
+			}
+			
+		};
+		
+        try {
+			RootTools.getShell(false).add(command);
+		} catch (IOException e) {
+			new AlertDialog.Builder(LowsActivity.this)
+			.setTitle("IOException failed")
+			.setMessage("IOException when executing nlscanner binary")
+			.setNeutralButton("okaay", null).show();
+		} catch (TimeoutException e) {
+			new AlertDialog.Builder(LowsActivity.this)
+			.setTitle("TimeoutException failed")
+			.setMessage("TimeoutException when executing nlscanner binary")
+			.setNeutralButton("okaay", null).show();
+		} catch (RootDeniedException e) {
+			new AlertDialog.Builder(LowsActivity.this)
+			.setTitle("RootDeniedException failed")
+			.setMessage("RootDeniedException when executing nlscanner binary")
+			.setNeutralButton("okay", null).show();
+		}
+    
+    }
+	
+	void ieParser()
+	{
+		if(aps==null)
+		{
+			debugText = debugText + "\n-" + "ieParser Error, aps==null";
+		}
+		else
+		{
+			lows = new ArrayList<LoWS>();
+			int numberAps = aps.size();
+			int i,j;
+			int numberIEs;
+			AccessPoint tempReadAp;
+			for(i=0; i<numberAps; i++)
+			{
+				tempReadAp = aps.get(i);
+				numberIEs = tempReadAp.getIESize();
+				for(j=0; j<numberIEs; j++)
+				{
+					String tempIE = tempReadAp.getIE(j);
+					//debugText = debugText + "\n-" + "ieParser: ie: " +tempIE;
+					//Look for Cisco CCX Hostname Embedding
+					
+					if(tempIE.charAt(0)=='8' && tempIE.charAt(1) == '5')
+					{
+						//We have a Cisco CCX IE
+						//First extract hostname out of IE
+						tempIE = tempIE.subSequence(36, 81).toString();
+						//Remove spaces
+						tempIE = tempIE.replaceAll(" ", "");
+						//Now convert to ascii
+						StringBuilder output = new StringBuilder();
+						for(int p = 0; p < tempIE.length(); p+=2)
+						{
+							String str = tempIE.substring(p, p+2);
+							output.append((char)Integer.parseInt(str, 16));
+						}
+						//Now look if there is something embedded
+						if(output.charAt(10)=='^' && output.charAt(14)=='^')//We have a LoW-S encoding
+						{
+							//Yes we have a lows embedding, now put it into our lows array list, together with the ap data
+							//First extract data out of hostname
+							tempIE = tempIE.subSequence((tempIE.length()-8), (tempIE.length()-2)).toString();
+							LoWS tempLows = new LoWS(tempReadAp, tempIE, 3); //Lows Cisco Embedding is always 3 Byte
+							lows.add(tempLows);
+							//debugText = debugText + "\n-" + "added IE Cisco-Embedding: " +tempIE;
+						}
+						
+					}
+					
+					if(tempIE.charAt(0)=='d' && tempIE.charAt(1) == 'd' && tempIE.charAt(6) == 'a' 
+							&& tempIE.charAt(7) == 'a' && tempIE.charAt(9) == 'a' && tempIE.charAt(10) == 'a' 
+							&& tempIE.charAt(12) == 'a' && tempIE.charAt(13) == 'a') //Vendor specific element + OUI aaaaaa
+					{
+						//Yes we have a lows embedding inside a Vendor Specific IE
+						//Get the length of the IE
+						String tempIELength = tempIE.subSequence(3, 5).toString();
+						int tempIELengthInt=Integer.parseInt(tempIELength, 16); //Length is Data + OUI + type
+						//Remove all the whitespaces
+						tempIE = tempIE.replaceAll(" ", "");
+						//Extract the data block
+						
+						tempIE = tempIE.subSequence(10, (14+((tempIELengthInt-5)*2))).toString();
+						
+						LoWS tempLows = new LoWS(tempReadAp, tempIE, (tempIELengthInt-3)); //Data_Length = IELength-OUI
+						
+						lows.add(tempLows);
+					
+						//debugText = debugText + "\n-" + "added IE Vendor Specific: " +tempIE;
+						
+					}
+					
+				}
+			}
+			lowsParser();
+		}
+	}
+
+	
+	void lowsParser()
+	{
+		if(lows==null)
+		{
+			debugText = debugText + "\n-" + "No LoWS found in your current area, lowsParser terminated.";
+			return;
+		}
+		else
+		{
+			int numberLows = lows.size();
+			int i;
+			LoWS tempReadLows;
+			for(i=0; i<numberLows; i++)
+			{
+				tempReadLows = lows.get(i);
+				String tempLowsData = tempReadLows.getLowsData();
+				
+				String tempLowsFormatType = tempLowsData.subSequence(0, 2).toString();
+				int tempLowsFormatTypeInt=Integer.parseInt(tempLowsFormatType, 16);
+				
+				if(tempLowsFormatTypeInt<128)
+				{
+					//We have a lows in reduced Format
+					parseReducedLows(i, tempLowsFormatTypeInt); //In the reduced format, the format type is also the real type
+				}
+				else if(tempLowsFormatTypeInt >127)
+				{
+					//We have a lows in extended Format
+					parseExtendedLows(i);
+				}
+				
+			}
+			updateResultListFragmentFromActivity();
+		}
+	
+	}
+	
+	void parseReducedLows(int i, int type)
+	{
+		LoWS tempReducedLows = lows.get(i);
+		tempReducedLows.setFormatType(1);
+		tempReducedLows.setType(type);
+		tempReducedLows.setLowsDisplayString(getDisplayStringFromType(1,type));
+		tempReducedLows.setLowsServiceData(tempReducedLows.getLowsData().subSequence(2, 6).toString());
+		lows.set(i, tempReducedLows);
+		//debugText = debugText + "\n-" + "parseReducedLows: " +tempReducedLows.getLowsData();
+		
+	}
+	
+	void parseExtendedLows(int i)
+	{
+		LoWS tempExtendedLows = lows.get(i);
+		tempExtendedLows.setFormatType(2);
+		lows.set(i, tempExtendedLows);
+		parseExtendedOptionByte(i); //underlying function will delete lows from array if it is a fragment and if it is not fully reassembled yet
+		//Now we know that current LoWS is not a fragment or it is already fully reassembled
+		parseExtendedType(i);
+		parseExtendedSecurityByte(i);
+		encryptExtendedData(i);
+		verifyExtendedSignature(i);
+		parseExtendedData(i);
+		
+		//debugText = debugText + "\n-" + "parseExtendedLows: " +tempExtendedLows.getLowsData();
+	}
+	
+	private void parseExtendedData(int i) {
+		LoWS tempExtendedLows = lows.get(i);
+		int extendedTypeDataLength = tempExtendedLows.getLowsData().length();
+		int startOfServiceData = tempExtendedLows.getBeginOfServiceData();
+		String extendedLowsServiceData = tempExtendedLows.getLowsData().subSequence(startOfServiceData, extendedTypeDataLength).toString();
+		tempExtendedLows.setLowsServiceData(extendedLowsServiceData);
+		lows.set(i, tempExtendedLows);
+	}
+
+	private void verifyExtendedSignature(int i) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	private void encryptExtendedData(int i) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	void parseExtendedSecurityByte(int i)
+	{
+		LoWS tempExtendedLows = lows.get(i);
+		//If security is present, the parseExtendedOptionByte() func. should recognized this
+		if(tempExtendedLows.isEncryptionIsPresent())
+		{
+			//process Encryption stuff
+		}
+		if(tempExtendedLows.isSignatureIsPresent())
+		{
+			//process Signature stuff
+		}
+	}
+	
+	void parseExtendedType(int i)
+	{
+		LoWS tempExtendedLows = lows.get(i);
+		String tempLowsData = tempExtendedLows.getLowsData();
+		if(tempExtendedLows.isSeqNumberIsPresent())
+		{
+			//Length of Seq# must be determined, because Type follows after the Seq#
+		}
+		else
+		{
+			//We have no Seq# the type starts with the second byte of the LoWS data.
+			String tempLowsType = tempLowsData.subSequence(2, 4).toString();
+			int tempLowsTypeInt=Integer.parseInt(tempLowsType, 16);
+			if(tempLowsTypeInt<128)
+			{
+				//Next Byte does not belong to the type, tempLowsTypeInt is the type of the LoWS
+				tempExtendedLows.setType(tempLowsTypeInt);
+				tempExtendedLows.setEndOfType(4); //Till the next byte isn't also a type field, the end of type is at byte position 2
+				//Now that we know the Type, we can set the DisplayString which will be displayed in the Scan Result fragment.
+				tempExtendedLows.setLowsDisplayString(getDisplayStringFromType(2,tempLowsTypeInt));
+				if(!tempExtendedLows.isEncryptionIsPresent() && !tempExtendedLows.isSignatureIsPresent())
+				{
+					tempExtendedLows.setBeginOfServiceData(4);
+				}
+				lows.set(i, tempExtendedLows);
+			}
+			else
+			{
+				//Next Byte belongs also to the Type
+				//Parsing of the lows must be continued till the byte is smaller than 128.
+			}
+		}
+	}
+	
+	
+	
+	void parseExtendedOptionByte(int i)
+	{
+		//LoWS tempExtendedLows = lows.get(i);
+		//parse the options
+		//parse SequenceNumber if Fragmented here by calling the Fragmented Function!!
+		//If fragmented, LoWS must be deleted from lows array and stored somewhere else till LoWS is completed
+		//(if all fragments were received) afterwards the complete LoWS should be stored in lows array.
+		//If fragmented and not fully reassembeld, function should exit processing here!
+	}
+	
+	
+	
+	
+	
+	
+	
+	//Type to Display String Mapping Function
+	String getDisplayStringFromType(int formatType, int type)
+	{
+		if(formatType==1)
+		{	
+			int lowsRedTypeSize = lowsRedType.size();
+			int j=0;
+			LoWSReducedType tempRedType;
+			for(j=0; j<lowsRedTypeSize; j++)
+			{
+				tempRedType = lowsRedType.get(j);
+				if(tempRedType.getTypeNumber()==type)
+				{
+					return "" + tempRedType.getDisplayString();
+				}
+				else
+				{
+					return "Not supported type";
+				}
+			}		
+		}
+		else if(formatType==2)
+		{
+			int lowsExtTypeSize = lowsRedType.size();
+			int j=0;
+			LoWSExtendedType tempExtType;
+			for(j=0; j<lowsExtTypeSize; j++)
+			{
+				tempExtType = lowsExtType.get(j);
+				if(tempExtType.getTypeNumber()==type)
+				{
+					return "" + tempExtType.getDisplayString();
+				}
+				else
+				{
+					return "Not supported type";
+				}
+			}	
+		}
+		else
+		{
+			debugText = debugText + "\n-" + "Error getting DisplayString for formatType which is not 1 or 2";
+			return "FormatType not supported";
+		}
+		return "";
+	}
+	
+	
+	
+	
+	/*************************************************************************/
+	//Function to update ListView in first Fragment
+	private void updateResultListFragmentFromActivity()
+	{
+		String fragmentTag = makeFragmentName(R.id.pager, 0);
+		if(fragmentTag==null)
+		{
+			return;
+		}
+		ResultListFragment fragment = (ResultListFragment) getFragmentManager().findFragmentByTag(fragmentTag);
+		if(fragment ==null)
+		{
+			return;
+		}
+		else
+		{
+			fragment.updateListView();
+		}
+	}
+	
+	private static String makeFragmentName(int viewId, int index)
+	{
+	     return "android:switcher:" + viewId + ":" + index;
+	     //where viewId is id of ViewPager
+	}
+	
+	
+	
+	
+	/*************************************************************************/
+	//Supported Types//
+	
+	
+	private void addAllTypes()
+	{
+		//Reduced Types
+		lowsRedType = new ArrayList<LoWSReducedType>();
+		BEPSLoWSReducedType bepsType = new BEPSLoWSReducedType();
+		lowsRedType.add(bepsType);
+		
+		
+		//Extended Types
+		lowsExtType = new ArrayList<LoWSExtendedType>();
+		WTNLoWSExtendedType wtsType = new WTNLoWSExtendedType();
+		lowsExtType.add(wtsType);
+	}
+}

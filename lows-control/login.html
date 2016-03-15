@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>LoWS Control</title>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <style>
+    #header {
+        background-color:black;
+        color:white;
+        text-align:center;
+        padding:5px;
+    }
+    #nav {
+        line-height:30px;
+        background-color:#eeeeee;
+        height:300px;
+        width:100px;
+        float:left;
+        padding:5px; 
+    }
+    #section {
+        width:500px;
+        float:left;
+        padding:10px; 
+    }
+    #footer {
+        background-color:black;
+        color:white;
+        clear:both;
+        text-align:center;
+        padding:5px; 
+    }
+    </style>
+</head>
+
+<body>
+    
+<div id="header">
+<h1>LoWS Control</h1>
+<h2>Central control instance for Location based Wifi Services (LoWS)</h2>
+</div>
+
+<div id="nav">
+<b>Login</b><br>
+</div>
+
+<div id="section">
+<h1>Please enter your username and password</h1>
+<p>
+
+<form action="login.php" method="post">
+username:<br>
+<input type="text" size="24" maxlength="50"
+name="username"><br><br>
+
+password:<br>
+<input type="password" size="24" maxlength="50"
+name="password"><br>
+
+<input type="submit" value="Login">
+</form>
+<br>
+<br>
+<form><input type="button" value="Register new user" onClick="window.location.href='register.html'"></form>
+
+</p>
+</div>
+
+<div id="footer">
+Copyright © Sven Zehl, 2014-2015 svenzehl@gmail.com
+</div>
+  
+</body>
+</html>

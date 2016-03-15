@@ -1,0 +1,20 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    tools:context=".LowsActivity$PlaceholderFragment" >
+   
+    <TextView
+        android:id="@+id/section_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+    <ScrollView android:layout_height="fill_parent" android:layout_width="fill_parent" android:layout_marginLeft="5px" android:layout_marginRight="5px" android:id="@+id/scroller">
+	<TextView android:layout_height="fill_parent" android:id="@+id/output_text" android:maxLength="1000000" android:textColor="#FF00FF00" android:layout_width="fill_parent" android:text="@string/welcome_text"/>
+	</ScrollView>
+
+
+</RelativeLayout>

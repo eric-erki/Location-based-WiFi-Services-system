@@ -1,0 +1,373 @@
+Index: hostapd-2014-06-03.1/hostapd/Makefile
+===================================================================
+--- hostapd-2014-06-03.1.orig/hostapd/Makefile	2014-10-20 20:24:08.856388040 +0200
++++ hostapd-2014-06-03.1/hostapd/Makefile	2014-10-20 20:44:30.440387895 +0200
+@@ -21,6 +21,10 @@
+ CONFIG_WPS_TESTING=y
+ endif
+ 
++ifdef BEACON_IE_ADDING_SUPPORT
++CFLAGS += -DBEACON_IE_ADDING_SUPPORT
++endif
++
+ ifndef CONFIG_OS
+ ifdef CONFIG_NATIVE_WINDOWS
+ CONFIG_OS=win32
+Index: hostapd-2014-06-03.1/hostapd/ctrl_iface.c
+===================================================================
+--- hostapd-2014-06-03.1.orig/hostapd/ctrl_iface.c	2014-10-20 20:24:08.616388041 +0200
++++ hostapd-2014-06-03.1/hostapd/ctrl_iface.c	2014-10-23 11:29:57.168515696 +0200
+@@ -39,6 +39,9 @@
+ #include "ctrl_iface.h"
+ #include "config_file.h"
+ 
++#ifdef BEACON_IE_ADDING_SUPPORT
++#include "ap/beacon.h"
++#endif /*BEACON_IE_ADDING_SUPPORT*/
+ 
+ struct wpa_ctrl_dst {
+ 	struct wpa_ctrl_dst *next;
+@@ -132,6 +135,48 @@
+ 	return -1;
+ }
+ 
++#ifdef BEACON_IE_ADDING_SUPPORT
++
++static int hostapd_ctrl_iface_add_ie(struct hostapd_data *hapd,
++				      const char *ie_hex_data)
++{
++    struct wpabuf *elems;
++    size_t len = os_strlen(ie_hex_data);
++    /*
++    if (len & 0x01) {
++        wpa_printf(MSG_ERROR,
++        "Line %d: Invalid vendor_elements '%s'",
++		 line, pos);
++			return 1;
++    }
++    */
++    len /= 2;
++	if (len == 0) {
++		wpabuf_free(hapd->vendorspec_beacon_ie);
++		hapd->vendorspec_beacon_ie = NULL;
++        ieee802_11_set_beacon(hapd);
++        return 0;
++	}
++
++    elems = wpabuf_alloc(len);
++    if (elems == NULL)
++        return -1;
++
++    if (hexstr2bin(ie_hex_data, wpabuf_put(elems, len), len)) {
++        wpabuf_free(elems);
++        wpa_printf(MSG_ERROR,
++                "Line %d: Invalid vendor_elements '%s'",
++                999, ie_hex_data);
++        return -1;
++    }
++
++    wpabuf_free(hapd->vendorspec_beacon_ie);
++    hapd->vendorspec_beacon_ie = elems;
++    ieee802_11_set_beacon(hapd);
++    return 0;
++}
++
++#endif /*BEACON_IE_ADDING_SUPPORT*/
+ 
+ static int hostapd_ctrl_iface_new_sta(struct hostapd_data *hapd,
+ 				      const char *txtaddr)
+@@ -1448,6 +1493,30 @@
+ 	} else if (os_strcmp(buf, "STATUS") == 0) {
+ 		reply_len = hostapd_ctrl_iface_status(hapd, reply,
+ 						      reply_size);
++#ifdef BEACON_IE_ADDING_SUPPORT
++    } else if (os_strncmp(buf, "ADD_IE ", 7) == 0) {
++
++        if (hostapd_ctrl_iface_add_ie(hapd, buf + 7)==0)
++        {
++			os_memcpy(reply, "Command accomplished\n", 21);
++            reply_len = 11;
++        }
++        else
++        {
++            os_memcpy(reply, "Command failed\n", 15);
++            reply_len = 19;
++        }
++    } else if (os_strcmp(buf, "GET_BEACON_SIZE") == 0) {
++        char beacon_len_char[5];
++        beacon_len_char[0]='\0';
++        beacon_len_char[1]='\0';
++        beacon_len_char[2]='\0';
++        beacon_len_char[3]='\0';
++        beacon_len_char[4]='\0';
++        sprintf(beacon_len_char, "%zu\n", hapd->current_beacon_size);
++		os_memcpy(reply, beacon_len_char, 5);
++		reply_len = 5;
++#endif /*BEACON_IE_ADDING_SUPPORT*/
+ 	} else if (os_strcmp(buf, "STATUS-DRIVER") == 0) {
+ 		reply_len = hostapd_drv_status(hapd, reply, reply_size);
+ #ifdef CONFIG_CTRL_IFACE_MIB
+Index: hostapd-2014-06-03.1/hostapd/hostapd_cli.c
+===================================================================
+--- hostapd-2014-06-03.1.orig/hostapd/hostapd_cli.c	2014-10-20 20:24:08.704388041 +0200
++++ hostapd-2014-06-03.1/hostapd/hostapd_cli.c	2014-10-23 10:52:51.624515962 +0200
+@@ -76,6 +76,15 @@
+ "   wps_nfc_config_token <WPS/NDEF>  build NFC configuration token\n"
+ "   wps_nfc_token <WPS/NDEF/enable/disable>  manager NFC password token\n"
+ #endif /* CONFIG_WPS_NFC */
++#ifdef BEACON_IE_ADDING_SUPPORT
++"   add_ie               add IE to beacon and probe response\n"
++"\t supported input formats:\n"
++"\t *add_ie <hex-data-of-complete-IE(s)> (multiple IEs possible)\n"
++"\t *add_ie (<number of ies>) <OUI_1> <Type_1> <Data_1> \n\t (<OUI_2> <Type_2> <Data_2> ...)\n"
++"\t    ->in interactive mode, only 2 IEs can be parsed if \n\t    input is not complete hex format\n"
++"\t *add_ie <no_argument> clears all additional added IE(s)\n"
++"   get_beacon_size      get current size of beacon frame body\n"
++#endif /*BEACON_IE_ADDING_SUPPORT*/
+ "   wps_ap_pin <cmd> [params..]  enable/disable AP PIN\n"
+ "   wps_config <SSID> <auth> <encr> <key>  configure AP\n"
+ "   wps_get_status       show current WPS status\n"
+@@ -207,6 +216,104 @@
+ 	return wpa_ctrl_command(ctrl, "PING");
+ }
+ 
++#ifdef BEACON_IE_ADDING_SUPPORT
++static int hostapd_cli_cmd_add_ie(struct wpa_ctrl *ctrl, int argc, char *argv[])
++{
++	char buf[2000]; //should be changed to some kind of malloc
++    unsigned int data_length;
++    unsigned int number_of_ie=0;
++    int i,j;
++    j=1;
++	if (argc == 1) 
++    {
++        //We pass a complete IE which is already formatted
++		snprintf(buf, sizeof(buf), "ADD_IE %s", argv[0]);
++        return wpa_ctrl_command(ctrl, buf);
++	}
++    else if (argc == 0)
++    {
++        snprintf(buf, sizeof(buf), "ADD_IE ");
++        return wpa_ctrl_command(ctrl, buf);
++    }
++	else if(argc >=3)
++    {
++        if(argc==3)
++        {
++            number_of_ie=1;
++            j=0;
++        }
++        if((strlen(argv[0])<=2)||(number_of_ie==1))
++        {
++            if(number_of_ie==0)
++            {
++                number_of_ie=atoi(argv[0]);
++            }
++            if(number_of_ie>0)
++            {
++                if(interactive && (number_of_ie > 2))
++                {
++                    number_of_ie=2;
++                    printf("Sorry, in interactive mode only 2 IEs can "
++                        "be passed\n Use non interactive mode to pass more IEs\n"
++                        "The first two IEs will be processed...\n");
++                }
++                snprintf(buf, sizeof(buf), "ADD_IE ");
++                for(i=1; i<=number_of_ie; i++)
++                {
++                    if(strlen(argv[j])==6)
++                    {
++                        if(strlen(argv[j+1])==2)
++                        {
++                            data_length=strlen(argv[j+2]);
++                            if((data_length<(207*2))&&((data_length%2)==0))
++                            {
++                                snprintf((buf+strlen(buf)), sizeof(buf), "dd%02x%s%s%s", ((data_length/2)+4), argv[j], argv[j+1], argv[j+2]);
++                                printf("IE #%d, %s\n",i,buf);
++                            }
++                            else
++                            {
++                                printf("Data block is too long or contains a not completed byte, only 207 bytes are possible\n");
++                            }
++                            
++                        }
++                        else
++                        {
++                            printf("Vendor Specific Type has to consist of exactly 2 hex characters e.g. f1, your: %s \n",argv[j+2]);
++                        }
++                    
++                
++                    }
++                    else
++                    {
++                        printf("OUI has to consist of exactly 6 hex characters e.g. aabbcc\n");
++                    }
++                    j=j+3;
++                }
++                printf("Data sent to driver: %s\n",buf);
++                return wpa_ctrl_command(ctrl, buf);
++            }
++        }
++        
++        else
++        {
++            printf("Problem reading the number of IEs\n");
++        }
++    }
++    
++    else
++    {
++        printf("Input format is not supported\n");
++        return -1;
++    }
++    
++    return 0;
++}
++
++static int hostapd_cli_cmd_get_beacon_size(struct wpa_ctrl *ctrl, int argc, char *argv[])
++{
++	return wpa_ctrl_command(ctrl, "GET_BEACON_SIZE");
++}
++#endif /*BEACON_IE_ADDING_SUPPORT*/
+ 
+ static int hostapd_cli_cmd_relog(struct wpa_ctrl *ctrl, int argc, char *argv[])
+ {
+@@ -963,6 +1070,10 @@
+ 	{ "new_sta", hostapd_cli_cmd_new_sta },
+ 	{ "deauthenticate", hostapd_cli_cmd_deauthenticate },
+ 	{ "disassociate", hostapd_cli_cmd_disassociate },
++#ifdef BEACON_IE_ADDING_SUPPORT
++    { "add_ie", hostapd_cli_cmd_add_ie },
++    { "get_beacon_size", hostapd_cli_cmd_get_beacon_size },
++#endif /*BEACON_IE_ADDING_SUPPORT*/
+ #ifdef CONFIG_IEEE80211W
+ 	{ "sa_query", hostapd_cli_cmd_sa_query },
+ #endif /* CONFIG_IEEE80211W */
+Index: hostapd-2014-06-03.1/src/ap/beacon.c
+===================================================================
+--- hostapd-2014-06-03.1.orig/src/ap/beacon.c	2014-10-20 20:24:08.856388040 +0200
++++ hostapd-2014-06-03.1/src/ap/beacon.c	2014-10-20 20:57:16.296387803 +0200
+@@ -334,7 +334,11 @@
+ 	u8 *pos, *epos;
+ 	size_t buflen;
+ 
++#ifdef BEACON_IE_ADDING_SUPPORT
++#define MAX_PROBERESP_LEN 2320 //max. 2320 byte Std.802.11-2012 p.418
++#else
+ #define MAX_PROBERESP_LEN 768
++#endif /*BEACON_IE_ADDING_SUPPORT*/
+ 	buflen = MAX_PROBERESP_LEN;
+ #ifdef CONFIG_WPS
+ 	if (hapd->wps_probe_resp_ie)
+@@ -426,6 +430,14 @@
+ 	}
+ #endif /* CONFIG_WPS */
+ 
++#ifdef BEACON_IE_ADDING_SUPPORT
++    if (hapd->vendorspec_beacon_ie) {
++		os_memcpy(pos, wpabuf_head(hapd->vendorspec_beacon_ie),
++			  wpabuf_len(hapd->vendorspec_beacon_ie));
++		pos += wpabuf_len(hapd->vendorspec_beacon_ie);
++	}
++#endif /*BEACON_IE_ADDING_SUPPORT*/
++
+ #ifdef CONFIG_P2P
+ 	if ((hapd->conf->p2p & P2P_ENABLED) && is_p2p &&
+ 	    hapd->p2p_probe_resp_ie) {
+@@ -736,6 +748,12 @@
+ {
+ 	struct ieee80211_mgmt *head = NULL;
+ 	u8 *tail = NULL;
++#ifdef BEACON_IE_ADDING_SUPPORT
++    u8 *frame_body_head_start;
++    u8 *frame_body_tail_start;
++    size_t frame_body_head_len;
++    size_t frame_body_tail_len;
++#endif /*BEACON_IE_ADDING_SUPPORT*/
+ 	size_t head_len = 0, tail_len = 0;
+ 	u8 *resp = NULL;
+ 	size_t resp_len = 0;
+@@ -744,7 +762,11 @@
+ 	u8 *pos, *tailpos;
+ 
+ #define BEACON_HEAD_BUF_SIZE 256
++#ifdef BEACON_IE_ADDING_SUPPORT
++#define BEACON_TAIL_BUF_SIZE 2064 //max. frame body size 2320-headbuf(256)
++#else
+ #define BEACON_TAIL_BUF_SIZE 512
++#endif /*BEACON_IE_ADDING_SUPPORT*/
+ 	head = os_zalloc(BEACON_HEAD_BUF_SIZE);
+ 	tail_len = BEACON_TAIL_BUF_SIZE;
+ #ifdef CONFIG_WPS
+@@ -780,6 +802,10 @@
+ 	head->u.beacon.capab_info = host_to_le16(capab_info);
+ 	pos = &head->u.beacon.variable[0];
+ 
++#ifdef BEACON_IE_ADDING_SUPPORT
++    frame_body_head_start=pos;
++#endif /* BEACON_IE_ADDING_SUPPORT*/
++
+ 	/* SSID */
+ 	*pos++ = WLAN_EID_SSID;
+ 	if (hapd->conf->ignore_broadcast_ssid == 2) {
+@@ -804,6 +830,11 @@
+ 
+ 	head_len = pos - (u8 *) head;
+ 
++#ifdef BEACON_IE_ADDING_SUPPORT
++    frame_body_head_len= pos - frame_body_head_start;
++    frame_body_tail_start = tailpos;
++#endif /*BEACON_IE_ADDING_SUPPORT*/
++
+ 	tailpos = hostapd_eid_country(hapd, tailpos,
+ 				      tail + BEACON_TAIL_BUF_SIZE - tailpos);
+ 
+@@ -857,6 +888,14 @@
+ 	}
+ #endif /* CONFIG_WPS */
+ 
++#ifdef BEACON_IE_ADDING_SUPPORT
++    if (hapd->vendorspec_beacon_ie) {
++		os_memcpy(tailpos, wpabuf_head(hapd->vendorspec_beacon_ie),
++			  wpabuf_len(hapd->vendorspec_beacon_ie));
++		tailpos += wpabuf_len(hapd->vendorspec_beacon_ie);
++	}
++#endif /*BEACON_IE_ADDING_SUPPORT*/
++
+ #ifdef CONFIG_P2P
+ 	if ((hapd->conf->p2p & P2P_ENABLED) && hapd->p2p_beacon_ie) {
+ 		os_memcpy(tailpos, wpabuf_head(hapd->p2p_beacon_ie),
+@@ -883,6 +922,16 @@
+ 
+ 	tail_len = tailpos > tail ? tailpos - tail : 0;
+ 
++#ifdef BEACON_IE_ADDING_SUPPORT
++    frame_body_tail_len = tailpos - frame_body_tail_start;
++    
++    hapd->current_beacon_size=frame_body_tail_len+frame_body_head_len; //tagged paramters without DTIM
++    hapd->current_beacon_size += 6; //add TIM size
++    hapd->current_beacon_size += 8; //fixed parameters, Timestamp
++    hapd->current_beacon_size += 2; //fixed parameters, Beacon Intervall
++    hapd->current_beacon_size += 2; //fixed parameters, Capabilities
++#endif /*BEACON_IE_ADDING_SUPPORT*/
++
+ 	resp = hostapd_probe_resp_offloads(hapd, &resp_len);
+ #endif /* NEED_AP_MLME */
+ 
+Index: hostapd-2014-06-03.1/src/ap/hostapd.h
+===================================================================
+--- hostapd-2014-06-03.1.orig/src/ap/hostapd.h	2014-10-20 20:24:08.856388040 +0200
++++ hostapd-2014-06-03.1/src/ap/hostapd.h	2014-10-20 20:46:33.904387880 +0200
+@@ -169,6 +169,12 @@
+ 	int beacon_set_done;
+ 	struct wpabuf *wps_beacon_ie;
+ 	struct wpabuf *wps_probe_resp_ie;
++    
++#ifdef BEACON_IE_ADDING_SUPPORT
++    struct wpabuf *vendorspec_beacon_ie;
++    size_t current_beacon_size;
++#endif /*BEACON_IE_ADDING_SUPPORT*/
++    
+ #ifdef CONFIG_WPS
+ 	unsigned int ap_pin_failures;
+ 	unsigned int ap_pin_failures_consecutive;

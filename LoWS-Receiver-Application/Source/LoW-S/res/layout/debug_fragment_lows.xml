@@ -1,0 +1,18 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="fill_parent" android:layout_height="fill_parent" android:id="@+id/main_layout" android:background="#000000" android:orientation="vertical">
+	<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:id="@+id/buttons_layout" android:gravity="left" android:layout_marginBottom="2px" android:layout_marginTop="2px" android:layout_marginLeft="2px">
+		<Button android:layout_height="wrap_content" android:layout_gravity="left" android:layout_width="wrap_content" android:id="@+id/sb" android:textStyle="bold" android:text="@string/start_button_text" android:textColor="#FF00FF00"/>
+		<Button android:layout_height="wrap_content" android:layout_gravity="left" android:layout_width="wrap_content" android:id="@+id/rb" android:textStyle="bold" android:text="@string/read_button_text" android:textColor="#FF00FF00"/>
+		<Button android:layout_height="wrap_content" android:layout_gravity="left" android:layout_width="wrap_content" android:id="@+id/lb" android:textStyle="bold" android:text="@string/lows_button_text" android:textColor="#FF00FF00"/>
+		<Button android:layout_height="wrap_content" android:layout_gravity="left" android:layout_width="wrap_content" android:id="@+id/search_button" android:textStyle="bold" android:text="@string/search_button_text" android:textColor="#FF00FF00"/>
+
+
+
+		<ProgressBar android:layout_width="wrap_content" android:layout_height="wrap_content" android:id="@+id/running_progressbar" android:indeterminate="true" android:visibility="invisible" android:layout_marginLeft="20px"/>
+	</LinearLayout>
+	<LinearLayout android:layout_height="match_parent" android:layout_width="fill_parent" android:orientation="vertical" android:background="#000000" android:id="@+id/output_layout">
+		<TextView android:gravity="center" android:layout_height="wrap_content" android:layout_width="fill_parent" android:textColor="#FFFFFF00" android:paddingBottom="3px" android:textStyle="bold" android:id="@+id/stdo_text" android:text="@string/standard_output_text"/>
+		<ScrollView android:layout_height="fill_parent" android:layout_width="fill_parent" android:layout_marginLeft="5px" android:layout_marginRight="5px" android:id="@+id/scroller">
+			<TextView android:layout_height="fill_parent" android:id="@+id/output_text" android:maxLength="1000000" android:textColor="#FF00FF00" android:layout_width="fill_parent" android:text="@string/welcome_text"/>
+		</ScrollView>
+	</LinearLayout>
+</LinearLayout>

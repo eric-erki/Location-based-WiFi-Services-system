@@ -1,0 +1,54 @@
+<?php
+echo '<!DOCTYPE html>                                                                           ';
+echo '<html>                                                                                    ';
+echo '                                                                                          ';
+echo '<head>                                                                                    ';
+echo '    <title>LoWS Control</title>                                  ';
+echo '    <meta http-equiv="content-type" content="text/html; charset=UTF-8">                   ';
+echo '    <style>                                                                               ';
+echo '    #header {                                                                             ';
+echo '        background-color:black;                                                           ';
+echo '        color:white;                                                                      ';
+echo '        text-align:center;                                                                ';
+echo '        padding:5px;                                                                      ';
+echo '    }                                                                                     ';
+echo '    #nav {                                                                                ';
+echo '        line-height:30px;                                                                 ';
+echo '        background-color:#eeeeee;                                                         ';
+echo '        height:300px;                                                                     ';
+echo '        width:120px;                                                                      ';
+echo '        float:left;                                                                       ';
+echo '        padding:5px;                                                                      ';
+echo '    }                                                                                     ';
+echo '    #section {                                                                            ';
+echo '        width:500px;                                                                      ';
+echo '        float:left;                                                                       ';
+echo '        padding:10px;                                                                     ';
+echo '    }                                                                                     ';
+echo '    #footer {                                                                             ';
+echo '        background-color:black;                                                           ';
+echo '        color:white;                                                                      ';
+echo '        clear:both;                                                                       ';
+echo '        text-align:center;                                                                ';
+echo '        padding:5px;                                                                      ';
+echo '    }                                                                                     ';
+echo '    </style>                                                                              ';
+echo '</head>                                                                                   ';
+echo '                                                                                          ';
+echo '<body>                                                                                    ';
+echo '                                                                                          ';
+echo '<div id="header">                                                                         ';
+echo '<h1>LoWS Control</h1>                                                   ';
+echo '<h2>Central control instance for Location based Wifi Services (LoWS)</h2>                 ';
+echo '</div>                                                                                    ';
+echo '                                                                                          ';
+/*
+    echo '<div id="nav">                                                                            ';
+    echo '<b>Login</b><br>                                                                          ';
+    echo '</div>                                                                                    ';
+    echo '                                                                                          ';
+    echo '<div id="section">                                                                        ';
+    echo '<h1>Please enter your username and password</h1>                                          ';
+    echo '<p>                                                                                       ';
+*/
+?>

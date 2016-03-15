@@ -1,0 +1,95 @@
+package com.lows;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class AccessPoint {
+	private String bssid;
+	private String ssid;
+	private int freq;
+	private int beaconInterval;
+	private double signal;
+	private int lastSeen;
+	private List<String> ies;
+	
+	
+	public AccessPoint()
+	{	
+		ies = new ArrayList<String>();
+	}	
+	
+	public void addIE(String ieData)
+	{
+		this.ies.add(ieData);
+	}
+	
+	public String getIE(int index)
+	{
+		return this.ies.get(index);
+	}
+	
+	public int getIESize()
+	{
+		return this.ies.size();
+	}
+	
+	
+	public String getBssid()
+	{
+		return this.bssid;
+	}
+	
+	public void setBssid(String bssid)
+	{
+		this.bssid = bssid;
+	}
+	
+	public String getSsid()
+	{
+		return this.ssid;
+	}
+	
+	public void setSsid(String ssid)
+	{
+		this.ssid = ssid;
+	}
+	
+	public int getFreq()
+	{
+		return this.freq;
+	}
+	
+	public void setFreq(int freq)
+	{
+		this.freq = freq;
+	}
+
+	public int getBeaconInterval() {
+		return beaconInterval;
+	}
+
+	public void setBeaconInterval(int beaconInterval) 
+	{
+		this.beaconInterval = beaconInterval;
+	}
+
+	public double getSignal() {
+		return this.signal;
+	}
+
+	public void setSignal(double signal) 
+	{
+		this.signal = signal;
+	}
+
+	public int getLastSeen() 
+	{
+		return lastSeen;
+	}
+
+	public void setLastSeen(int lastSeen) 
+	{
+		this.lastSeen = lastSeen;
+	}
+
+}
