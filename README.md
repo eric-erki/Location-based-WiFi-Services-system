@@ -65,7 +65,7 @@ attractive tool for modifications, changes and improvements.
  LoWS-Control, therefore the access from the codebookserver to the LoWS-Control-db worked locally, if the local codebook server should run separately,
  the connection to the LoWS-Control-db has to be
  adjusted.
-#### 1.3 Global Codebook Address Server (Sources in Subfolder *gcbas*)
+### 1.3 Global Codebook Address Server (Sources in Subfolder *gcbas*)
 * This folder contains the Global Codebook Address Server
  also implemented using PHP, we ran this code on
  a separate machine using apache with PHP and a MySQL
