@@ -59,14 +59,18 @@ attractive tool for modifications, changes and improvements.
  machine but not necessary, for our experiments we used
  the address space 192.168.68.0/24 while the LoWS-Control
  used 192.168.68.1
+
 ### 1.3 Local Codebookserver (Sources in Subfolder *codebookserver*)
+
 * This is the local codebookserver implementation,
  also realized using PHP. For our experiments we
  ran the codebookserver on the same server as the 
  LoWS-Control, therefore the access from the codebookserver to the LoWS-Control-db worked locally, if the local codebook server should run separately,
  the connection to the LoWS-Control-db has to be
  adjusted.
-#### 1.3 Global Codebook Address Server (Sources in Subfolder *gcbas*)
+
+### 1.3 Global Codebook Address Server (Sources in Subfolder *gcbas*)
+
 * This folder contains the Global Codebook Address Server
  also implemented using PHP, we ran this code on
  a separate machine using apache with PHP and a MySQL
@@ -74,7 +78,9 @@ attractive tool for modifications, changes and improvements.
  the file "gcbas-database.sql" from the MySQL server.
  The access to the database requires login credentials
  these have to be modified within the "address-handler.php" file. 
+
 ### 1.4 OpenWRT Files (Sources in Subfolder *OpenWRT*)
+
 * This folder includes all source code which was used
  on the OpenWRT access points. The subfolder "hostapd-add-ie/openwrt" contains the patch for enabling the 
  additonal setting of IEEE 802.11 IEs within hostpad via 
