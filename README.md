@@ -106,3 +106,19 @@ attractive tool for modifications, changes and improvements.
 * Anatolij Zubow, TU-Berlin, zubow@tkn
 * Adam Wolisz, TU-Berlin, wolisz@tkn
 * tkn = tkn.tu-berlin.de
+
+## 10. How to reference LoWS
+Please use the following bibtex :
+
+```
+@inproceedings{Zehl16lows,
+Title = {{LoWS: A Complete Open Source Solution for Wi-Fi Beacon Stuffing Based Location-based Services}},
+Author = {Zehl, Sven and Karowski, Niels and Zubow, Anatolij and Wolisz, Adam},
+Booktitle = {{9th IFIP Wireless and Mobile Networking Conference (WMNC 2016)}},
+Year = {2016},
+Location = {Colmar, France},
+Month = {July},
+Url = {http://www.tkn.tu-berlin.de/fileadmin/fg112/Papers/2016/zehl16lows.pdf}
+}
+
+```
